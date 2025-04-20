@@ -2,30 +2,21 @@
 VOTable Class
 """
 
+import io
 from dataclasses import dataclass
-from typing import Optional
-import warnings
 import pandas as pd
 import pyarrow.parquet as pq
 import pyarrow as pa
-
-from read import extract_votable_metadata
-from write import generate_votable_xml
-
+from astropy.io.votable.tree import VOTableFile, Resource, TableElement, Field, Info
+from astropy.io.votable import parse
 
 @dataclass
 class VOParquetTable:
     """
     Main data structure for storing data and metadata of VOparquet files.
     """
-
     data: pd.DataFrame
-    metadata_field_df: Optional[pd.DataFrame] = None
-    metadata_param_df: Optional[pd.DataFrame] = None
-    metadata_info_df: Optional[pd.DataFrame] = None
-    metadata_coosys_df: Optional[pd.DataFrame] = None
-    raw_metadata: Optional[dict] = None
-    description: Optional[str] = None
+    meta_data: VOTableFile
     version: str = "1.0"
 
     @classmethod
@@ -33,50 +24,55 @@ class VOParquetTable:
         """
         Creates a VOParquetTable object from the given file.
         """
-        table = pq.read_table(filename)
-        df = table.to_pandas()
-        meta = table.schema.metadata
+        meta_data = read_vo_parquet_metadata(filename)
+        data_frame = pq.read_table(filename).to_pandas()
+        return cls(data_frame, meta_data)
 
-        if not meta or b"IVOA.VOTable-Parquet.content" not in meta:
-            warnings.warn(
-                f"File {filename} is not a valid VOParquet file. Metadata set to None."
-            )
-            return cls(data=df)
-
-        votable_xml = meta[b"IVOA.VOTable-Parquet.content"].decode("utf-8")
-        field_df, param_df, info_df, coosys_df, description = extract_votable_metadata(
-            votable_xml
-        )
-
-        return cls(
-            data=df,
-            metadata_field_df=field_df,
-            metadata_param_df=param_df,
-            metadata_info_df=info_df,
-            metadata_coosys_df=coosys_df,
-            raw_metadata={k.decode(): v.decode() for k, v in meta.items()},
-            description=description,
-        )
-
-    def write_to_parquet(self, filename: str, **kwargs) -> None:
+    def write_to_parquet(self, out_file: str) -> None:
         """
-        Writes a parquet file with the given meta data.
+        Writes the VoParquetTable Object to a parquet file.
         """
         table = pa.Table.from_pandas(self.data)
         metadata = dict(table.schema.metadata or {})
 
-        votable_xml = generate_votable_xml(
-            metadata_field_df=self.metadata_field_df,
-            description=self.description,
-            version=self.version,
-            param_df=self.metadata_param_df,
-            info_df=self.metadata_info_df,
-            coosys_df=self.metadata_coosys_df,
-        )
+        # Write VOTable object to XML string
+        buffer = io.BytesIO()
+        self.meta_data.to_xml(buffer)
+        votable_xml = buffer.getvalue().decode("utf-8")
 
         metadata[b"IVOA.VOTable-Parquet.content"] = votable_xml.encode("utf-8")
         metadata[b"IVOA.VOTable-Parquet.version"] = self.version.encode("utf-8")
 
+        # Apply updated schema
         schema_with_meta = table.schema.with_metadata(metadata)
         table = table.cast(schema_with_meta)
-        pq.write_table(table, filename, **kwargs)
+        pq.write_table(table, out_file)
+
+def read_vo_parquet_metadata(file_name: str) -> VOTableFile:
+    """
+    Reading the parquet meta data according to VOParquet standards.
+    """
+    meta = pq.read_metadata(file_name)
+    xml_bytes = meta.metadata[b"IVOA.VOTable-Parquet.content"]
+    buffer = io.BytesIO(xml_bytes)
+    return parse(buffer)
+
+
+if __name__ == '__main__':
+    # Create a new VOTable file...
+    votable = VOTableFile()
+    resource = Resource()
+    votable.resources.append(resource)
+    table = TableElement(votable)
+    resource.tables.append(table)
+    table.fields.extend([
+            Field(votable, name="ra", datatype="double", arraysize="*", unit="deg"),
+            Field(votable, name="dec", datatype="double", arraysize="*", unit="deg"),
+            Field(votable, name="z", datatype="double", arraysize="*", unit="")])
+    table.description = "This is a table"
+    table.infos.extend([
+        Info("SHARK-VERSION", "SHARKv2", "v1.2")
+    ])
+    data = pd.DataFrame({"ra": [10.1, 20.2], "dec": [-30.1, -45.3], "z": [0.03, 0.1]})
+    vp = VOParquetTable(data, votable)
+    vp.write_to_parquet('test_again.parquet')
