@@ -26,7 +26,10 @@ class VOParquetTable:
         """
         Creates a VOParquetTable object from the given file.
         """
-        meta_data = read_vo_parquet_metadata(filename)
+        try:
+            meta_data = read_vo_parquet_metadata(filename)
+        except KeyError:
+            meta_data = None
         data_frame = pq.read_table(filename).to_pandas()
         return cls(data_frame, meta_data)
 
