@@ -13,6 +13,49 @@ from astropy.io.votable.tree import (
     Info,
 )
 import pandas as pd
+import numpy as np
+
+def dtype_to_vodatatype(dtype: np.dtype) -> str:
+    """
+    Map a pandas/numpy dtype to a VOTable datatype string.
+    Raises ValueError if dtype is unsupported.
+    """
+    if pd.api.types.is_bool_dtype(dtype):
+        return "boolean"
+    elif pd.api.types.is_integer_dtype(dtype):
+        if dtype == np.uint8:
+            return "unsignedByte"
+        elif dtype == np.int16:
+            return "short"
+        elif dtype == np.int32:
+            return "int"
+        elif dtype == np.int64:
+            return "long"
+    elif pd.api.types.is_float_dtype(dtype):
+        if dtype == np.float32:
+            return "float"
+        elif dtype == np.float64:
+            return "double"
+    elif pd.api.types.is_complex_dtype(dtype):
+        if dtype == np.complex64:
+            return "floatComplex"
+        elif dtype == np.complex128:
+            return "doubleComplex"
+    elif pd.api.types.is_string_dtype(dtype):
+        return "unicodeChar"
+    elif pd.api.types.is_object_dtype(dtype):
+        # Fallback for strings often stored as object
+        return "unicodeChar"
+
+    raise ValueError(f"Unsupported dtype for VOTable: {dtype}")
+
+def get_names_and_datatypes(data_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Tries to build the field Dataframe from the actual data.
+    """
+    names = list(data_df.columns)
+    data_type = [dtype_to_vodatatype(data_df[name].dtype) for name in names]
+    return pd.DataFrame.from_dict({"Name": names, "Datatype": data_type})
 
 
 @dataclass
@@ -151,4 +194,3 @@ if __name__ == "__main__":
     infos = [{"Name": "SHARKv2-VERSION", "Value": "2.1"}, {"Name": "Author", "Value": "Trytan"}]
     params = [{"Name": "OmegaM", "Value": 0.3}]
     vp = ParquetMetaVO(fields, params, infos, "This is a test table by me.")
-    
