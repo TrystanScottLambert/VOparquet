@@ -3,12 +3,14 @@ VOTable Class
 """
 
 import io
+from typing import ClassVar
 from dataclasses import dataclass
 import pandas as pd
 import pyarrow.parquet as pq
 import pyarrow as pa
 from astropy.io.votable.tree import VOTableFile, Resource, TableElement, Field, Info
 from astropy.io.votable import parse
+
 
 @dataclass
 class VOParquetTable:
@@ -17,7 +19,7 @@ class VOParquetTable:
     """
     data: pd.DataFrame
     meta_data: VOTableFile
-    version: str = "1.0"
+    VERSION: ClassVar[str] = "1.0"
 
     @classmethod
     def from_parquet(cls, filename: str) -> "VOParquetTable":
@@ -41,7 +43,7 @@ class VOParquetTable:
         votable_xml = buffer.getvalue().decode("utf-8")
 
         metadata[b"IVOA.VOTable-Parquet.content"] = votable_xml.encode("utf-8")
-        metadata[b"IVOA.VOTable-Parquet.version"] = self.version.encode("utf-8")
+        metadata[b"IVOA.VOTable-Parquet.version"] = self.VERSION.encode("utf-8")
 
         # Apply updated schema
         schema_with_meta = table.schema.with_metadata(metadata)
