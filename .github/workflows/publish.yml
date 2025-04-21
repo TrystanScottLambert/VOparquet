@@ -1,6 +1,10 @@
 name: Publish Python 🐍 distribution 📦 to PyPI
 
 on:
+  push:
+   tags:
+     'v*.*.*'
+
   release:
     types: [published]  # Only runs when you create a GitHub release
 
