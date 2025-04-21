@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import pandas as pd
 import pyarrow.parquet as pq
 import pyarrow as pa
-from astropy.io.votable.tree import VOTableFile, Resource, TableElement, Field, Info
+from astropy.io.votable.tree import VOTableFile
 from astropy.io.votable import parse
 
 
@@ -58,23 +58,3 @@ def read_vo_parquet_metadata(file_name: str) -> VOTableFile:
     xml_bytes = meta.metadata[b"IVOA.VOTable-Parquet.content"]
     buffer = io.BytesIO(xml_bytes)
     return parse(buffer)
-
-
-if __name__ == '__main__':
-    # Create a new VOTable file...
-    votable = VOTableFile()
-    resource = Resource()
-    votable.resources.append(resource)
-    table = TableElement(votable)
-    resource.tables.append(table)
-    table.fields.extend([
-            Field(votable, name="ra", datatype="double", arraysize="*", unit="deg"),
-            Field(votable, name="dec", datatype="double", arraysize="*", unit="deg"),
-            Field(votable, name="z", datatype="double", arraysize="*", unit="")])
-    table.description = "This is a table"
-    table.infos.extend([
-        Info("SHARK-VERSION", "SHARKv2", "v1.2")
-    ])
-    data = pd.DataFrame({"ra": [10.1, 20.2], "dec": [-30.1, -45.3], "z": [0.03, 0.1]})
-    vp = VOParquetTable(data, votable)
-    vp.write_to_parquet('test_again.parquet')

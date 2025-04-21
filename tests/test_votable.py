@@ -6,7 +6,7 @@ import unittest
 import os
 import pandas as pd
 from astropy.io.votable.tree import VOTableFile, Resource, TableElement, Field, Info
-from vo_parquet import VOParquetTable, read_vo_parquet_metadata
+from vo_parquet.vo_parquet_table import VOParquetTable, read_vo_parquet_metadata
 
 
 class TestVOParquetTable(unittest.TestCase):

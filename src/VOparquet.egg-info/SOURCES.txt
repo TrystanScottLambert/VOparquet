@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+src/VOparquet.egg-info/PKG-INFO
+src/VOparquet.egg-info/SOURCES.txt
+src/VOparquet.egg-info/dependency_links.txt
+src/VOparquet.egg-info/requires.txt
+src/VOparquet.egg-info/top_level.txt
+src/vo_parquet/__init__.py
+src/vo_parquet/metadata.py
+src/vo_parquet/vo_parquet.py
+tests/test_metadata.py
+tests/test_votable.py

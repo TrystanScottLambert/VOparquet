@@ -141,11 +141,7 @@ class ParquetMetaVO:
                     "UCD": field_element.ucd,
                     "Unit": field_element.unit,
                     "ArraySize": field_element.arraysize,
-                    "Description": (
-                        getattr(field_element.description, "value", None)
-                        if field_element.description
-                        else None
-                    ),
+                    "Description": field_element.description,
                 }
             )
         fields_df = pd.DataFrame(field_data)
@@ -180,17 +176,3 @@ class ParquetMetaVO:
             infos=info_data or None,
             description=table.description if table.description else None,
         )
-
-
-if __name__ == "__main__":
-    fields = pd.DataFrame.from_dict(
-        {
-            "Name": ["RA", "DEC", "Z"],
-            "Unit": ["deg", "deg", ""],
-            "Datatype": ["double", "double", "double"],
-            "Description": ["Right Ascension", "Declination", "Redshift"],
-        }
-    )
-    infos = [{"Name": "SHARKv2-VERSION", "Value": "2.1"}, {"Name": "Author", "Value": "Trytan"}]
-    params = [{"Name": "OmegaM", "Value": 0.3}]
-    vp = ParquetMetaVO(fields, params, infos, "This is a test table by me.")
